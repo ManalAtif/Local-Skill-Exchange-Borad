@@ -1,0 +1,6 @@
+{
+  "name": "Local Skill-Exchange Board",
+  "description": "A web app where community members can post skills they can teach and skills they need, discover matching matches based on category and distance, and chat directly to arrange a peer exchange.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
