@@ -23,6 +23,7 @@ import {
   Mail, 
   Lock, 
   ChevronRight,
+  ChevronLeft,
   Shield,
   ThumbsUp,
   Map as MapIcon,
@@ -66,7 +67,7 @@ export default function App() {
   const [authLocation, setAuthLocation] = useState('Gulberg, Lahore');
   const [authLat, setAuthLat] = useState(31.5204);
   const [authLng, setAuthLng] = useState(74.3587);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(true);
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
 
@@ -183,11 +184,44 @@ export default function App() {
 
   // Scroll to bottom of chat
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastChatUserIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (!selectedChatUserId) {
+      lastChatUserIdRef.current = null;
+      return;
     }
-  }, [chatMessages]);
+
+    const container = chatScrollContainerRef.current;
+    if (!container) return;
+
+    const isDifferentUser = selectedChatUserId !== lastChatUserIdRef.current;
+    
+    // If we changed to a different chat partner, scroll instantly to bottom
+    if (isDifferentUser) {
+      lastChatUserIdRef.current = selectedChatUserId;
+      // Allow slight render buffer
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 30);
+      return;
+    }
+
+    // If it's a new message in the same chat:
+    // Only scroll to the bottom if the user is already scrolled near the bottom,
+    // so we don't disrupt them if they are scrolling up reading past logs.
+    const threshold = 180; // pixels from bottom
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+
+    if (isNearBottom) {
+      setTimeout(() => {
+        if (chatBottomRef.current) {
+          chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 30);
+    }
+  }, [chatMessages, selectedChatUserId]);
 
   // Auth Submit handler
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -602,7 +636,7 @@ export default function App() {
           <div className="bg-white border border-slate-200 w-full rounded-none shadow-sm grid grid-cols-1 md:grid-cols-12 overflow-hidden">
             
             {/* Left promo panel (Geometric style) */}
-            <div className="md:col-span-5 bg-slate-900 text-white p-8 flex flex-col justify-between relative overflow-hidden">
+            <div className="hidden md:flex md:col-span-5 bg-slate-900 text-white p-8 flex-col justify-between relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl -mr-20 -mt-20"></div>
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/10 rounded-full blur-2xl -ml-20 -mb-20"></div>
 
@@ -637,7 +671,7 @@ export default function App() {
             </div>
 
             {/* Right form panel */}
-            <div className="md:col-span-7 p-8">
+            <div className="col-span-12 md:col-span-7 p-8">
               <h3 className="text-xl font-bold tracking-tight text-slate-900 mb-2">
                 {isSignUp ? "Create Local Account" : "Access SkillExchange Board"}
               </h3>
@@ -792,10 +826,11 @@ export default function App() {
         </div>
       ) : (
         // MAIN APP APPLICATION INTERFACE
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <div className="flex-1 flex overflow-hidden">
           
           {/* LEFT NAVIGATION COLUMN (Geometric Balance sidebar) */}
-          <nav className="w-64 bg-white border-r border-slate-200 flex flex-col py-6 shrink-0 shadow-sm">
+          <nav className="hidden md:flex w-64 bg-white border-r border-slate-200 flex-col py-6 shrink-0 shadow-sm">
             <div className="px-6 mb-8">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Discovery</p>
               <ul className="space-y-1">
@@ -1200,10 +1235,10 @@ export default function App() {
 
               {/* CHATS MESSAGING TAB */}
               {activeTab === 'chats' && (
-                <div className="bg-white border border-slate-200 h-[600px] flex shadow-sm overflow-hidden">
+                <div className="bg-white border border-slate-200 h-[500px] md:h-[600px] flex shadow-sm overflow-hidden">
                   
                   {/* Left Chat Partners Pane */}
-                  <div className="w-1/3 border-r border-slate-200 flex flex-col bg-slate-50">
+                  <div className={`w-full md:w-1/3 border-r border-slate-200 flex flex-col bg-slate-50 ${selectedChatUserId ? 'hidden md:flex' : 'flex'}`}>
                     <div className="p-4 border-b border-slate-200 bg-white">
                       <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Active Peer Chats</h3>
                     </div>
@@ -1242,14 +1277,24 @@ export default function App() {
                   </div>
 
                   {/* Right chat message area */}
-                  <div className="flex-1 flex flex-col bg-white">
+                  <div className={`flex-1 flex-col bg-white ${selectedChatUserId ? 'flex' : 'hidden md:flex'}`}>
                     {selectedChatUserId ? (
                       <>
                         {/* Conversation Header */}
                         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                          <div>
-                            <p className="text-xs text-slate-400 uppercase font-semibold tracking-wider">Direct Dialogue with</p>
-                            <h3 className="text-sm font-bold text-slate-900">{selectedChatUserName}</h3>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => setSelectedChatUserId(null)}
+                              className="p-1 -ml-1 text-slate-500 hover:bg-slate-200 rounded md:hidden flex items-center justify-center"
+                              title="Back to Chats List"
+                              type="button"
+                            >
+                              <ChevronLeft size={20} />
+                            </button>
+                            <div>
+                              <p className="text-xs text-slate-400 uppercase font-semibold tracking-wider">Direct Dialogue with</p>
+                              <h3 className="text-sm font-bold text-slate-900">{selectedChatUserName}</h3>
+                            </div>
                           </div>
                           
                           <button 
@@ -1275,7 +1320,7 @@ export default function App() {
                         )}
 
                         {/* Message log */}
-                        <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                        <div ref={chatScrollContainerRef} className="flex-1 p-4 overflow-y-auto space-y-4">
                           {chatMessages.map(msg => {
                             const isMe = msg.senderId === user.id;
                             return (
@@ -1636,6 +1681,70 @@ export default function App() {
 
           </section>
         </div>
+
+        {/* BOTTOM NAVIGATION FOR MOBILE DEVICES */}
+        <div className="md:hidden border-t border-slate-200 bg-white h-16 flex items-center justify-around shrink-0 z-30 sticky bottom-0">
+          <button 
+            onClick={() => setActiveTab('browse')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-colors ${
+              activeTab === 'browse' ? 'text-indigo-600 font-bold' : 'text-slate-400'
+            }`}
+          >
+            <Compass size={18} />
+            <span className="text-[9px] mt-0.5 tracking-tight">Browse</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('matches')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-colors relative ${
+              activeTab === 'matches' ? 'text-orange-500 font-bold' : 'text-slate-400'
+            }`}
+          >
+            <Sparkles size={18} />
+            {suggestedMatches.length > 0 && (
+              <span className="absolute top-1.5 right-6 text-[8px] bg-orange-500 text-white font-bold px-1 rounded-full scale-90">
+                {suggestedMatches.length}
+              </span>
+            )}
+            <span className="text-[9px] mt-0.5 tracking-tight">Matches</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('chats')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-colors relative ${
+              activeTab === 'chats' ? 'text-indigo-600 font-bold' : 'text-slate-400'
+            }`}
+          >
+            <MessageSquare size={18} />
+            {activeChats.length > 0 && (
+              <span className="absolute top-1.5 right-6 text-[8px] bg-indigo-600 text-white font-bold px-1 rounded-full scale-90">
+                {activeChats.length}
+              </span>
+            )}
+            <span className="text-[9px] mt-0.5 tracking-tight">Chats</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('my-profile')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 text-center transition-colors ${
+              activeTab === 'my-profile' ? 'text-indigo-600 font-bold' : 'text-slate-400'
+            }`}
+          >
+            <User size={18} />
+            <span className="text-[9px] mt-0.5 tracking-tight">Profile</span>
+          </button>
+        </div>
+
+        {/* Floating action button on mobile */}
+        {user && activeTab === 'browse' && (
+          <button 
+            onClick={() => setShowCreateForm(true)}
+            className="md:hidden fixed bottom-20 right-6 w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl z-30 transition-all active:scale-95 cursor-pointer border border-indigo-500"
+            title="New Listing"
+            type="button"
+          >
+            <Plus size={24} />
+          </button>
+        )}
+
+      </div>
       )}
 
       {/* CREATE NEW LISTING FORM MODAL */}
@@ -1992,7 +2101,7 @@ export default function App() {
       )}
 
       {/* FOOTER */}
-      <footer className="h-10 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-6 shrink-0 text-slate-500 text-[10px] font-mono select-none">
+      <footer className="hidden md:flex h-10 bg-slate-900 border-t border-slate-800 items-center justify-between px-6 shrink-0 text-slate-500 text-[10px] font-mono select-none">
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
           <span className="uppercase tracking-widest">Pakistan community active exchange ring</span>

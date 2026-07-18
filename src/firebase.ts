@@ -370,7 +370,7 @@ function deg2rad(deg: number): number {
 // -------------------------------------------------------------
 
 // Active state of current logged in user (starts with a default if mock)
-let currentUserProfile: UserProfile | null = useMock ? DEFAULT_USERS[1] : null; // Default to Zain Ahmed to display fully active dashboards
+let currentUserProfile: UserProfile | null = null;
 let authListeners: ((user: UserProfile | null) => void)[] = [];
 
 export const getFirebaseMode = () => {

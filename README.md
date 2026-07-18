@@ -1,4 +1,4 @@
-# Local Skill Exchange Board
+# Pakistan SkillExchange Board
 
 An interactive, peer-to-peer community platform designed for Pakistani residents to trade skills, knowledge, and hobbies locally without money changing hands. The system identifies reciprocal matches (e.g., teaching what someone else wants to learn, and vice versa) and maps connections on a customized, high-contrast national coordinate grid.
 
